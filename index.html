@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de Números p-áicos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 550px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .info {
+            font-size: 14px;
+            color: #555;
+            background-color: #eef2f7;
+            padding: 12px;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #444;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .erro {
+            color: #d9534f;
+            background-color: #fdf7f7;
+            border: 1px solid #d9534f;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: none;
+        }
+        .resultado-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f8ff;
+            border: 1px solid #c8e1ff;
+            border-radius: 6px;
+            display: none;
+        }
+        .resultado-titulo {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .resultado-valor {
+            font-size: 20px;
+            font-weight: bold;
+            color: #007bff;
+            word-break: break-all;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Números p-áicos</h2>
+    
+    <div class="info">
+        Este sistema converte uma fração em um número p-ádico de uma base <i>p</i> (de 2 a 36).<br><br>
+        Para melhor visualização, são utilizados dígitos de 0 a 9 e letras de A a Z para representar valores de 0 a 35.
+    </div>
+
+    <div class="input-group">
+        <label for="numerador">Numerador (inteiro):</label>
+        <input type="number" id="numerador" placeholder="Ex: -1">
+    </div>
+
+    <div class="input-group">
+        <label for="denominador">Denominador (inteiro e diferente de zero):</label>
+        <input type="number" id="denominador" placeholder="Ex: 3">
+    </div>
+
+    <div class="input-group">
+        <label for="razao">Base p (número primo entre 2 e 36):</label>
+        <input type="number" id="razao" placeholder="Ex: 5">
+    </div>
+
+    <button onclick="calcularPadico()">Converter</button>
+
+    <div id="erroBox" class="erro"></div>
+
+    <div id="resultadoBox" class="resultado-box">
+        <div class="resultado-titulo">Representação p-ádica:</div>
+        <div id="resultadoTexto" class="resultado-valor"></div>
+    </div>
+</div>
+
+<script>
+    const sequencia = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    function mdcBigInt(a, b) {
+        a = a < 0n ? -a : a;
+        b = b < 0n ? -b : b;
+        while (b !== 0n) {
+            let temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    }
+
+    function modBigInt(n, m) {
+        let res = n % m;
+        return res < 0n ? res + m : res;
+    }
+
+    function ehPrimo(n) {
+        if (n < 2) return false;
+        for (let i = 2; i * i <= n; i++) {
+            if (n % i === 0) return false;
+        }
+        return true;
+    }
+
+    function calcularPadico() {
+        const erroBox = document.getElementById('erroBox');
+        const resultadoBox = document.getElementById('resultadoBox');
+        const resultadoTexto = document.getElementById('resultadoTexto');
+
+        erroBox.style.display = 'none';
+        resultadoBox.style.display = 'none';
+
+        const numInput = document.getElementById('numerador').value.trim();
+        const denInput = document.getElementById('denominador').value.trim();
+        const razInput = document.getElementById('razao').value.trim();
+
+        // Validações dos campos
+        if (numInput === "" || !Number.isInteger(Number(numInput))) {
+            erroBox.innerText = "O numerador deve ser um número inteiro.";
+            erroBox.style.display = 'block';
+            return;
+        }
+
+        if (denInput === "" || !Number.isInteger(Number(denInput)) || Number(denInput) === 0) {
+            erroBox.innerText = "O denominador deve ser um número inteiro diferente de zero.";
+            erroBox.style.display = 'block';
+            return;
+        }
+
+        const razao = Number(razInput);
+        if (razInput === "" || !Number.isInteger(razao) || razao < 2 || razao > 36) {
+            erroBox.innerText = "A base p deve ser um número inteiro de 2 a 36.";
+            erroBox.style.display = 'block';
+            return;
+        }
+
+        if (!ehPrimo(razao)) {
+            erroBox.innerText = "A base p deve ser um número primo.";
+            erroBox.style.display = 'block';
+            return;
+        }
+
+        // Conversão dos valores para BigInt para suporte a alta precisão
+        let numerador = BigInt(numInput);
+        let denominador = BigInt(denInput);
+        const pBig = BigInt(razao);
+
+        // Simplifica a fração inicial pelo MDC
+        let divisor = mdcBigInt(numerador, denominador);
+        numerador /= divisor;
+        denominador /= divisor;
+
+        // Trata os fatores da base 'p' no denominador
+        let divisorDenominador = 0;
+        while (denominador % pBig === 0n) {
+            denominador /= pBig;
+            divisorDenominador++;
+        }
+
+        let virgula = 1 + divisorDenominador;
+        let resultado = `${numerador.toString()}/${denominador.toString()} = `;
+
+        let decimais = 30;
+
+        // Algoritmo de expansão p-ádica
+        while (decimais > 0) {
+            let encontrou = false;
+            for (let i = 0; i < razao; i++) {
+                let iBig = BigInt(i);
+                if (modBigInt(numerador, pBig) === modBigInt(denominador * iBig, pBig)) {
+                    resultado += sequencia[i];
+                    virgula--;
+
+                    if (virgula === 0) {
+                        resultado += ",";
+                    }
+
+                    decimais--;
+                    numerador = numerador - (denominador * iBig);
+                    denominador = denominador * pBig;
+
+                    divisor = mdcBigInt(numerador, denominador);
+                    if (divisor !== 0n) {
+                        numerador /= divisor;
+                        denominador /= divisor;
+                    }
+                    encontrou = true;
+                    break;
+                }
+            }
+            if (!encontrou) break;
+        }
+
+        resultado += "...";
+
+        resultadoTexto.innerText = resultado;
+        resultadoBox.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
